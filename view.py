@@ -48,7 +48,7 @@ def main():
 
         driver = uc.Chrome(options=options)
 
-        url = "https://shopee.co.id/universal-link?redir=https%3A%2F%2Flive.shopee.co.id%2Fshare%3Ffrom%3Dlive%26session%3D54561310%26viewer%3D0%23pcshare"
+        url = "https://shopee.co.id/universal-link?redir=https%3A%2F%2Flive.shopee.co.id%2Fshare%3Ffrom%3Dlive%26session%3D54588066%26viewer%3D0%23pcshare"
 
         # Menghitung jumlah tab untuk iterasi ini (antara 80% hingga 100% dari jumlah_tab_awal)
         jumlah_tab = random.randint(int(jumlah_tab_awal * 0.8), jumlah_tab_awal)
