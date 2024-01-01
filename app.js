@@ -1,49 +1,48 @@
-const ffmpeg = require('fluent-ffmpeg');
+const { spawn } = require('child_process');
 const moment = require('moment');
 
-// Fungsi untuk streaming video ke RTMP server
 function streamVideo(videoPath, rtmpServer, streamKey, shouldLoop) {
-    const rtmpUrl = `${rtmpServer}/${streamKey}`; // Menggabungkan server dan kunci menjadi URL lengkap
-    const stream = ffmpeg(videoPath)
-        .format('flv') // Menggunakan format FLV untuk streaming
-        .videoCodec('libx264') // Menggunakan codec x264
-        .audioCodec('aac') // Menggunakan codec audio AAC
-        .on('start', (commandLine) => console.log(`Started: ${commandLine}`)) // Log saat mulai streaming
-        .on('stderr', (stderrLine) => {
-            if (stderrLine.includes('time=')) {
-                const timeString = stderrLine.match(/time=\s*(\S+)/)[1];
-                const duration = moment.duration(timeString);
-                console.log(`Streaming... Time: ${duration.hours()}:${duration.minutes()}:${duration.seconds()}`);
-            }
-        })
-        .on('error', (err, stdout, stderr) => {
-            console.log(`Error: ${err.message}`);
-            console.log('FFmpeg STDOUT:', stdout);
-            console.log('FFmpeg STDERR:', stderr);
-        })
-        .on('end', () => {
-            console.log('Streaming finished.');
-            if (shouldLoop) {
-                console.log('Restarting stream...');
-                streamVideo(videoPath, rtmpServer, streamKey, shouldLoop); // Memulai kembali streaming jika loop diaktifkan
-            }
-        })
-        .outputOptions('-preset veryfast') // Opsi enkoding untuk performa
-        .outputOptions('-crf 25') // Opsi enkoding untuk kualitas
-        .outputOptions('-flvflags no_duration_filesize') // Opsi khusus untuk FLV
-        .output(rtmpUrl) // URL RTMP server tujuan
-        .run(); // Jalankan streaming
+    const rtmpUrl = `${rtmpServer}/${streamKey}`;
+
+    const ffmpegArgs = [
+        '-re',
+        '-i', videoPath,
+        '-c:v', 'libx264',
+        '-b:v', '2500k',
+        '-preset', 'fast',
+        '-c:a', 'aac',
+        '-b:a', '160k',
+        '-f', 'flv',
+        rtmpUrl
+    ];
+
+    const ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
+
+    ffmpegProcess.stderr.on('data', (data) => {
+        const stderrLine = data.toString();
+        if (stderrLine.includes('time=')) {
+            const timeString = stderrLine.match(/time=\s*(\S+)/)[1];
+            const duration = moment.duration(timeString);
+            console.log(`Streaming... Time: ${duration.hours()}:${duration.minutes()}:${duration.seconds()}`);
+        }
+    });
+
+    ffmpegProcess.on('close', (code) => {
+        console.log(`Streaming finished with code ${code}.`);
+        if (shouldLoop) {
+            console.log('Restarting stream...');
+            streamVideo(videoPath, rtmpServer, streamKey, shouldLoop);
+        }
+    });
+
+    ffmpegProcess.on('error', (err) => {
+        console.log(`Error: ${err.message}`);
+    });
 }
 
-// Path ke file video Anda
-const videoPath = 'a.mp4';
-
-// Server RTMP dan kunci stream
+const videoPath = 'downloaded_video.mp4';
 const rtmpServer = 'rtmp://push-spe.lvb.shopee.co.id/live/';
-const streamKey = 'id-live-819315668719122-54586242?speSecret=43fda0fc853344c0a6a7e9edd6ebe10e&speTime=65970E62&pushDomain=push-spe.lvb.shopee.co.id&cdnID=SHOPEE&session_id=54586242';
+const streamKey = 'id-live-819315668719122-54588066?speSecret=b4e6b7793271db2522785f4da4faad32&speTime=65972F2F&pushDomain=push-spe.lvb.shopee.co.id&cdnID=SHOPEE&session_id=54588066';
+const shouldLoop = true;
 
-// Opsi Loop: true untuk loop, false untuk tidak
-const shouldLoop = false; // Atur ini sesuai kebutuhan
-
-// Memulai proses streaming
 streamVideo(videoPath, rtmpServer, streamKey, shouldLoop);
